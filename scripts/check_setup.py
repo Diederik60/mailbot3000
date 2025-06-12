@@ -90,13 +90,13 @@ def check_project_structure():
         "src/auth/__init__.py",
         "src/auth/microsoft_auth.py",
         "src/email/__init__.py", 
-        "src/email/fetcher.py",
+        "src/email/outlook_fetcher.py",
         "src/email/processor.py",
         "src/llm/__init__.py",
         "src/llm/classifier.py",
         "src/llm/prompts.py",
         "src/actions/__init__.py",
-        "src/actions/email_actions.py",
+        "src/actions/outlook_actions.py",
         "pyproject.toml"
     ]
     
@@ -131,7 +131,7 @@ def check_imports():
         return False
     
     try:
-        from email.fetcher import EmailFetcher
+        from email.outlook_fetcher import EmailFetcher
         print("✅ Email fetcher imported successfully")
     except Exception as e:
         print(f"❌ Failed to import email fetcher: {e}")

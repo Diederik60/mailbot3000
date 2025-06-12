@@ -13,9 +13,9 @@ from pathlib import Path
 
 from src.config.settings import settings
 from src.auth.microsoft_auth import MicrosoftAuthenticator
-from src.email.fetcher import EmailFetcher
+from src.email.email_interface import EmailInterface
 from src.llm.classifier import EmailClassifier
-from src.actions.email_actions import EmailActions
+from src.actions.outlook_actions import EmailActions
 
 console = Console()
 
@@ -25,6 +25,50 @@ def cli():
     pass
 
 @cli.command()
+def gmail_setup():
+    """Set up Gmail API credentials"""
+    console.print("[bold blue]Gmail API Setup Guide[/bold blue]")
+    
+    console.print("\n[cyan]📋 Step-by-Step Gmail Setup:[/cyan]")
+    
+    console.print("\n[bold]Step 1: Create Google Cloud Project[/bold]")
+    console.print("1. Go to https://console.cloud.google.com")
+    console.print("2. Create a new project or select existing one")
+    console.print("3. Enable the Gmail API")
+    
+    console.print("\n[bold]Step 2: Create Credentials[/bold]")
+    console.print("1. Go to 'Credentials' in the left sidebar")
+    console.print("2. Click '+ CREATE CREDENTIALS' → 'OAuth client ID'")
+    console.print("3. Choose 'Desktop application'")
+    console.print("4. Download the JSON credentials file")
+    
+    console.print("\n[bold]Step 3: Setup Your Project[/bold]")
+    console.print("1. Save the downloaded file as 'credentials.json' in your project root")
+    console.print("2. Update your .env file:")
+    console.print("   [bold]EMAIL_PROVIDER=gmail[/bold]")
+    console.print("   [bold]GMAIL_ADDRESS=your_gmail@gmail.com[/bold]")
+    console.print("   [bold]TARGET_EMAIL=your_gmail@gmail.com[/bold]")
+    
+    console.print("\n[bold]Step 4: Test Setup[/bold]")
+    console.print("Run: [bold]uv run outlook-ai setup[/bold]")
+    
+    # Check current status
+    console.print("\n[cyan]📊 Current Status:[/cyan]")
+    if settings.email_provider == "gmail":
+        console.print(f"   Email provider: [green]gmail[/green]")
+        if settings.has_gmail_credentials:
+            console.print(f"   Credentials file: [green]✓ Found[/green]")
+        else:
+            console.print(f"   Credentials file: [red]✗ Not found[/red]")
+        
+        if settings.gmail_address:
+            console.print(f"   Gmail address: [green]{settings.gmail_address}[/green]")
+        else:
+            console.print(f"   Gmail address: [red]✗ Not configured[/red]")
+    else:
+        console.print(f"   Email provider: [yellow]{settings.email_provider}[/yellow] (switch to gmail in .env)")
+
+@cli.command()
 def setup():
     """Initial setup and authentication test"""
     console.print("[bold blue]Outlook AI Manager Setup[/bold blue]")
@@ -32,23 +76,33 @@ def setup():
     # Check environment variables
     console.print("\n[yellow]Checking configuration...[/yellow]")
     
+    # Check email provider configuration
+    console.print("\n[yellow]Checking email provider configuration...[/yellow]")
+    
     try:
-        settings.validate_microsoft_config()
-        console.print("[green]✓ Microsoft Graph configuration found[/green]")
+        settings.validate_email_config()
+        console.print(f"[green]✓ Email provider configured: {settings.email_provider}[/green]")
     except ValueError as e:
         console.print(f"[red]✗ {e}[/red]")
-        console.print("\nPlease create a .env file with the required variables.")
-        console.print("See .env.example for the template.")
+        console.print("\n[cyan]Email Provider Setup:[/cyan]")
+        if settings.email_provider == "gmail":
+            console.print("1. Go to https://console.cloud.google.com")
+            console.print("2. Create project and enable Gmail API") 
+            console.print("3. Download credentials.json file")
+            console.print("4. Set GMAIL_ADDRESS in .env")
+        else:
+            console.print("1. Create Azure app registration")
+            console.print("2. Set Microsoft Graph credentials in .env")
         return
     
-    # Test Microsoft Graph authentication
-    console.print("\n[yellow]Testing Microsoft Graph authentication...[/yellow]")
-    auth = MicrosoftAuthenticator()
+    # Test email provider connection
+    console.print(f"\n[yellow]Testing {settings.email_provider} connection...[/yellow]")
+    email_interface = EmailInterface()
     
-    if auth.test_connection():
-        console.print("[green]✓ Microsoft Graph authentication successful[/green]")
+    if email_interface.test_connection():
+        console.print(f"[green]✓ {settings.email_provider.title()} connection successful[/green]")
     else:
-        console.print("[red]✗ Microsoft Graph authentication failed[/red]")
+        console.print(f"[red]✗ {settings.email_provider.title()} connection failed[/red]")
         return
     
     # Test LLM configuration
@@ -86,7 +140,7 @@ def stats():
     """Show email statistics"""
     console.print("[bold blue]Email Statistics[/bold blue]")
     
-    fetcher = EmailFetcher()
+    fetcher = EmailInterface()
     
     with console.status("[bold green]Fetching email statistics..."):
         stats = fetcher.get_email_stats()
@@ -116,9 +170,10 @@ def analyze(limit: int, folder: str, days: Optional[int], save_results: bool, pr
     console.print(f"[bold blue]Analyzing {limit} emails from {folder}[/bold blue]")
     
     # Initialize components
-    fetcher = EmailFetcher()
+    fetcher = EmailInterface()
     classifier = EmailClassifier(provider) if provider else EmailClassifier()
     
+    console.print(f"[dim]Using email provider: {fetcher.provider}[/dim]")
     console.print(f"[dim]Using LLM provider: {classifier.provider.name}[/dim]")
     
     # Fetch emails
@@ -168,10 +223,11 @@ def clean(limit: int, folder: str, days: Optional[int], auto_delete: bool, confi
         console.print("[yellow]Running in DRY RUN mode - no emails will be actually deleted[/yellow]")
     
     # Initialize components
-    fetcher = EmailFetcher()
+    fetcher = EmailInterface()
     classifier = EmailClassifier(provider) if provider else EmailClassifier()
-    actions = EmailActions()
+    actions = fetcher  # EmailInterface includes actions
     
+    console.print(f"[dim]Using email provider: {fetcher.provider}[/dim]")
     console.print(f"[dim]Using LLM provider: {classifier.provider.name}[/dim]")
     
     # Fetch emails
@@ -235,7 +291,7 @@ def sender_analysis(sender: Optional[str], limit: int):
     """Analyze sender patterns to create classification rules"""
     console.print("[bold blue]Sender Analysis[/bold blue]")
     
-    fetcher = EmailFetcher()
+    fetcher = EmailInterface()
     classifier = EmailClassifier()
     
     if sender:

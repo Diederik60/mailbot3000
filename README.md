@@ -1,30 +1,13 @@
-# Outlook AI Manager
-
-An AI-powered email management system for Outlook that helps you automatically classify, organize, and clean up your emails using Large Language Models (LLMs).
-
-## Features
-
-- **Intelligent Email Classification**: Uses free API-based LLMs (Groq, Google Gemini) to categorize emails as JUNK, PROMOTIONAL, IMPORTANT, or UNKNOWN
-- **Explicit Provider Control**: Choose exactly which LLM provider to use - no automatic selection
-- **Free LLM Options**: Support for Groq (fast) and Google Gemini (high quality) with generous free tiers
-- **Bulk Email Management**: Process hundreds of emails efficiently with batch classification
-- **Microsoft Graph Integration**: Secure connection to Outlook/Office 365 accounts
-- **Dry Run Mode**: Test classifications without making actual changes
-- **Sender Analysis**: Identify patterns in email senders to create automated rules
-- **Rich CLI Interface**: Beautiful command-line interface with progress bars and tables
-
-## Installation
-
 ### Prerequisites
 
 - Python 3.10 or higher
 - [UV package manager](https://github.com/astral-sh/uv) (recommended) or pip
-- Microsoft Azure App Registration (for Outlook access)
+- **Gmail API credentials** OR Microsoft Azure App Registration
 - One free LLM provider API key:
   - **Groq** (free tier, very fast)
   - **Google Gemini** (free tier, high quality)
 
-### Quick Start
+### Quick Start with Gmail (Recommended - No Paywalls!)
 
 1. **Clone the repository**:
    ```bash
@@ -34,31 +17,100 @@ An AI-powered email management system for Outlook that helps you automatically c
 
 2. **Install dependencies**:
    ```bash
-   # With UV (recommended)
    uv sync
-   
-   # Or with pip
-   pip install -e .
    ```
 
-3. **Set up free LLM**:
+3. **Set up Gmail API (5 minutes, completely free)**:
    ```bash
-   # Interactive setup (recommended)
+   # Interactive Gmail setup
+   uv run python scripts/setup_gmail.py
+   
+   # Or get detailed instructions
+   uv run outlook-ai gmail-setup
+   ```
+
+4. **Set up free LLM**:
+   ```bash
    uv run python scripts/install_free_llms.py
-   
-   # Or get help manually
-   uv run outlook-ai llm-setup
-   ```
-
-4. **Configure environment**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials
    ```
 
 5. **Test the setup**:
    ```bash
    uv run outlook-ai setup
+   # Outlook AI Manager
+
+An AI-powered email management system for Outlook that helps you automatically classify, organize, and clean up your emails using Large Language Models (LLMs).
+
+## Features
+
+- **Intelligent Email Classification**: Uses free API-based LLMs (Groq, Google Gemini) to categorize emails as JUNK, PROMOTIONAL, IMPORTANT, or UNKNOWN
+- **Dual Email Support**: Works with both Gmail and Outlook - choose your provider
+- **Explicit Provider Control**: Choose exactly which LLM provider to use - no automatic selection
+- **Free Setup Options**: Support for Gmail (free) and Groq/Gemini LLMs (free tiers)
+- **Bulk Email Management**: Process hundreds of emails efficiently with batch classification
+- **No Azure Paywall**: Use Gmail API instead of Microsoft Graph to avoid Azure costs
+- **Dry Run Mode**: Test classifications without making actual changes
+- **Sender Analysis**: Identify patterns in email senders to create automated rules
+- **Rich CLI Interface**: Beautiful command-line interface with progress bars and tables
+
+## Installation
+
+   ```
+
+### Alternative: Outlook Setup (Requires Azure)
+
+If you prefer Outlook or already have Azure setup:
+
+1. **Follow steps 1-2 above**
+2. **Set up Microsoft Graph API**:
+   ```bash
+   # Set email provider to outlook in .env
+   EMAIL_PROVIDER=outlook
+   ```
+3. **Create Azure App Registration** (see Azure setup section below)
+4. **Continue with steps 4-5 above**
+
+## Email Provider Setup
+
+### Gmail API Setup (Free & Easy)
+
+#### Step 1: Google Cloud Console
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select existing one
+3. Enable the Gmail API
+
+#### Step 2: Create Credentials
+1. Go to "Credentials" in the left sidebar
+2. Click "+ CREATE CREDENTIALS" → "OAuth client ID"
+3. Choose "Desktop application"
+4. Download the JSON credentials file
+
+#### Step 3: Configure Project
+```bash
+# Save credentials file as 'credentials.json' in project root
+# Update .env:
+EMAIL_PROVIDER=gmail
+GMAIL_ADDRESS=your_gmail@gmail.com
+TARGET_EMAIL=your_gmail@gmail.com
+```
+
+### Microsoft Graph API Setup (Azure Required)
+
+Only follow this if you want to use Outlook instead of Gmail:
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to "App registrations" → "New registration"
+3. Register your app with these permissions:
+   - `Mail.ReadWrite`
+   - `Mail.Send`
+   - `User.Read`
+4. Add credentials to `.env`:
+   ```env
+   EMAIL_PROVIDER=outlook
+   MICROSOFT_CLIENT_ID=your_client_id
+   MICROSOFT_CLIENT_SECRET=your_client_secret
+   MICROSOFT_TENANT_ID=your_tenant_id
+   TARGET_EMAIL=your_outlook_email@outlook.com
    ```
 
 ## Configuration
@@ -83,14 +135,21 @@ LLM_PROVIDER=gemini
 
 ### Provider Comparison
 
-| Provider | Cost | Speed | Quality | Batch Support |
-|----------|------|-------|---------|---------------|
-| Groq | Free tier | Very Fast | Good | Individual only |
-| Gemini | Free tier | Fast | Very Good | Full batch support |
+| Provider | Cost | Setup Time | API Limits | Complexity |
+|----------|------|------------|------------|------------|
+| **Gmail** | Free | 5 minutes | Very generous | Easy |
+| **Outlook** | Free* | 15+ minutes | Good | Complex |
+
+*Outlook requires Azure account which may have usage limits
+
+| LLM Provider | Cost | Speed | Quality | Batch Support |
+|--------------|------|-------|---------|---------------|
+| **Groq** | Free tier | Very Fast | Good | Individual only |
+| **Gemini** | Free tier | Fast | Very Good | Full batch support |
 | OpenAI | Paid | Fast | Excellent | Full batch support |
 | Anthropic | Paid | Medium | Excellent | Full batch support |
 
-**Recommendation**: Use **Groq** for speed or **Gemini** for quality and batch processing.
+**💡 Recommended Setup**: Gmail + Groq (both completely free, 10 minutes total setup)
 
 ### Environment Variables
 
@@ -123,17 +182,23 @@ MAX_EMAILS_PER_RUN=500
 # Test setup and authentication
 uv run outlook-ai setup
 
-# Show email statistics
+# Show email statistics  
 uv run outlook-ai stats
 
+# Get Gmail setup help
+uv run outlook-ai gmail-setup
+
+# Check available providers
+uv run outlook-ai providers
+
 # Analyze emails without making changes
-uv run outlook-ai analyze --limit 100 --folder inbox
+uv run outlook-ai analyze --limit 100
 
 # Clean up emails with automatic junk deletion
 uv run outlook-ai clean --limit 200 --auto-delete --confidence-threshold 0.9
 
-# Analyze sender patterns
-uv run outlook-ai sender-analysis --sender "example@domain.com"
+# Use specific providers
+uv run outlook-ai analyze --provider gemini --limit 50
 ```
 
 ### Command Options
@@ -153,12 +218,12 @@ uv run outlook-ai sender-analysis --sender "example@domain.com"
 
 ### Example Workflows
 
-#### 1. Initial Cleanup of Junk Account
+#### 1. Initial Cleanup of Junk Account (Gmail)
 ```bash
-# First, analyze what you have
+# First, check what you have
 uv run outlook-ai stats
 
-# Analyze recent emails to see classification quality
+# Analyze recent emails to see classification quality  
 uv run outlook-ai analyze --limit 50 --save-results
 
 # Clean up with high confidence threshold (safe)
@@ -168,13 +233,18 @@ uv run outlook-ai clean --limit 500 --auto-delete --confidence-threshold 0.9
 uv run outlook-ai clean --limit 200 --auto-delete --confidence-threshold 0.8
 ```
 
-#### 2. Ongoing Maintenance
+#### 2. Switching Between Email Providers
 ```bash
-# Daily cleanup of new emails
-uv run outlook-ai clean --days 1 --auto-delete --confidence-threshold 0.85
+# Switch to Gmail (edit .env file)
+EMAIL_PROVIDER=gmail
+GMAIL_ADDRESS=your_email@gmail.com
 
-# Weekly cleanup of promotional emails
-uv run outlook-ai clean --days 7 --folder inbox --auto-delete
+# Switch to Outlook (edit .env file) 
+EMAIL_PROVIDER=outlook
+TARGET_EMAIL=your_email@outlook.com
+
+# Test the switch
+uv run outlook-ai setup
 ```
 
 ## Project Structure
