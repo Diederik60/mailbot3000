@@ -1,0 +1,74 @@
+[project]
+name = "outlook-ai-manager"
+version = "0.1.0"
+description = "AI-powered Outlook email management system"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Microsoft Graph API - connects to Outlook/Office 365
+    "msal>=1.26.0",                  # Microsoft Authentication Library
+    "requests>=2.31.0",              # HTTP requests for API calls
+    
+    # LLM Integration - AI classification engines
+    "openai>=1.10.0",                # OpenAI API (GPT models)
+    "anthropic>=0.14.0",             # Anthropic API (Claude models)
+    
+    # Data handling and configuration
+    "python-dotenv>=1.0.0",          # Load environment variables from .env
+    "pydantic>=2.5.3",               # Data validation and settings
+    "pydantic-settings>=2.1.0",      # Pydantic settings management
+    
+    # Utilities
+    "rich>=13.7.0",                  # Beautiful terminal output
+    "python-dateutil>=2.8.2",       # Date/time parsing
+    "pytz>=2023.4",                  # Timezone handling
+    "click>=8.1.0",                  # Command-line interface framework
+]
+
+# Development-only dependencies
+[project.optional-dependencies]
+dev = [
+    "jupyter>=1.0.0",
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+outlook-ai = "src.main:cli"          # Creates `outlook-ai` command that runs main:cli
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
