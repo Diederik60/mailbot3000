@@ -6,27 +6,26 @@ authors = [{name = "Your Name", email = "your.email@example.com"}]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    # Microsoft Graph API - connects to Outlook/Office 365
-    "msal>=1.26.0",                  # Microsoft Authentication Library
-    "requests>=2.31.0",              # HTTP requests for API calls
+    # Microsoft Graph API
+    "msal>=1.26.0",
+    "requests>=2.31.0",
     
-    # LLM Integration - AI classification engines
-    "openai>=1.10.0",                # OpenAI API (GPT models)
-    "anthropic>=0.14.0",             # Anthropic API (Claude models)
+    # LLM Integration (Free options)
+    "groq>=0.4.0",
+    "google-generativeai>=0.3.0",
     
-    # Data handling and configuration
-    "python-dotenv>=1.0.0",          # Load environment variables from .env
-    "pydantic>=2.5.3",               # Data validation and settings
-    "pydantic-settings>=2.1.0",      # Pydantic settings management
+    # Data handling
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
     
     # Utilities
-    "rich>=13.7.0",                  # Beautiful terminal output
-    "python-dateutil>=2.8.2",       # Date/time parsing
-    "pytz>=2023.4",                  # Timezone handling
-    "click>=8.1.0",                  # Command-line interface framework
+    "rich>=13.7.0",
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.4",
+    "click>=8.1.0",
 ]
 
-# Development-only dependencies
 [project.optional-dependencies]
 dev = [
     "jupyter>=1.0.0",
@@ -36,9 +35,14 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
 ]
+premium = [
+    # Premium LLM options (paid)
+    "openai>=1.10.0",
+    "anthropic>=0.14.0",
+]
 
 [project.scripts]
-outlook-ai = "src.main:cli"          # Creates `outlook-ai` command that runs main:cli
+outlook-ai = "src.main:cli"
 
 [build-system]
 requires = ["hatchling"]
@@ -66,6 +70,9 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.mypy]
 python_version = "3.10"

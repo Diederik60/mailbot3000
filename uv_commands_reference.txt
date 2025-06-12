@@ -1,0 +1,35 @@
+# UV Commands Reference
+
+## Project Setup
+uv init myproject          # Create new project
+uv init --no-readme        # In existing directory
+
+## Dependencies
+uv add package-name        # Add runtime dependency
+uv add --dev pytest        # Add development dependency
+uv add "package>=1.0"      # Add with version constraint
+uv remove package-name     # Remove dependency
+uv sync                    # Install all dependencies from lock file
+
+## Running Code
+uv run python script.py    # Run Python script
+uv run python             # Start Python interpreter
+uv run pytest            # Run tests
+uv run --with requests python -c "import requests"  # Temporary dependency
+
+## Environment Management
+uv python list           # Show available Python versions
+uv python install 3.12   # Install specific Python version
+uv venv                  # Create virtual environment manually (rarely needed)
+
+## Useful Info
+uv tree                  # Show dependency tree
+uv pip list             # List installed packages
+uv pip show package     # Show package info
+
+## Quick Examples
+uv add requests pandas numpy          # Add multiple packages
+uv add --dev black ruff pytest       # Add dev tools
+uv run python -m pytest             # Run tests
+uv run python -c "print('Hello')"   # Quick Python command
+
