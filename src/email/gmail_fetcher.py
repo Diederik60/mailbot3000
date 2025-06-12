@@ -188,7 +188,7 @@ class GmailFetcher:
         return datetime.now().isoformat() + 'Z'
     
     def get_email_stats(self) -> Dict[str, Dict[str, int]]:
-        """Get basic email statistics with accurate counts"""
+        """Get basic email statistics with better handling for large mailboxes"""
         service = self._get_service()
         stats = {}
         
@@ -210,7 +210,7 @@ class GmailFetcher:
                 elif label_id.startswith('CATEGORY_') and label_id != 'UNREAD':
                     important_labels.append((label_id, label_name))
             
-            print(f"📁 Checking labels: {[name for _, name in important_labels]}")
+            print(f"📁 Checking main folders and categories...")
             
         except Exception as e:
             print(f"Warning: Could not get labels list: {e}")
@@ -222,62 +222,66 @@ class GmailFetcher:
                 ('SENT', 'Sent')
             ]
         
-        # Get more accurate counts for each label
+        # Get counts with better handling for large mailboxes
         for label_id, label_name in important_labels:
             try:
-                # Method 1: Try to get actual count by fetching messages
-                print(f"📊 Counting emails in {label_name}...")
-                
-                # Get first batch to check if label has emails
+                # Get API estimate
                 result = service.users().messages().list(
                     userId='me',
                     labelIds=[label_id],
-                    maxResults=10
+                    maxResults=1
                 ).execute()
                 
-                messages = result.get('messages', [])
+                api_estimate = result.get('resultSizeEstimate', 0)
                 
-                if not messages:
-                    # No messages in this label
-                    total_count = 0
-                    unread_count = 0
+                # For unread count
+                try:
+                    unread_result = service.users().messages().list(
+                        userId='me',
+                        labelIds=[label_id, 'UNREAD'],
+                        maxResults=1
+                    ).execute()
+                    unread_estimate = unread_result.get('resultSizeEstimate', 0)
+                except Exception:
+                    unread_estimate = 0
+                
+                # Format counts for better readability
+                def format_count(count):
+                    if count == 0:
+                        return "0"
+                    elif count < 100:
+                        return str(count)
+                    elif count < 1000:
+                        return f"{count}"
+                    elif count < 10000:
+                        return f"{count//1000}.{(count%1000)//100}k"
+                    else:
+                        return f"{count//1000}k+"
+                
+                # Handle Gmail's 201+ estimates for large folders
+                if api_estimate >= 200 and label_id in ['INBOX', 'SENT'] or label_id.startswith('CATEGORY_'):
+                    # For large folders, show as "200+" to indicate it's a lot
+                    total_display = f"{api_estimate}+" if api_estimate < 1000 else format_count(api_estimate)
                 else:
-                    # For folders with messages, get estimate
-                    # Gmail's resultSizeEstimate is more accurate for individual labels
-                    total_count = result.get('resultSizeEstimate', len(messages))
-                    
-                    # For unread count, combine with UNREAD label
-                    try:
-                        unread_result = service.users().messages().list(
-                            userId='me',
-                            labelIds=[label_id, 'UNREAD'],
-                            maxResults=10
-                        ).execute()
-                        unread_count = unread_result.get('resultSizeEstimate', 0)
-                        
-                        # If unread estimate seems wrong, count manually for small numbers
-                        if unread_count > 50:
-                            unread_messages = unread_result.get('messages', [])
-                            if len(unread_messages) < unread_count:
-                                unread_count = len(unread_messages)
-                                
-                    except Exception:
-                        unread_count = 0
+                    total_display = format_count(api_estimate)
                 
-                # Cap numbers that seem unrealistic
-                if total_count > 10000:
-                    total_count = f"{total_count//1000}k+"
-                if isinstance(unread_count, int) and unread_count > 10000:
-                    unread_count = f"{unread_count//1000}k+"
+                unread_display = format_count(unread_estimate)
                 
-                stats[label_name.lower()] = {
-                    'total_count': total_count,
-                    'unread_count': unread_count
+                stats[label_name.lower().replace('category_', '')] = {
+                    'total_count': total_display,
+                    'unread_count': unread_display,
+                    'raw_total': api_estimate,  # Keep raw number for processing decisions
+                    'raw_unread': unread_estimate
                 }
                 
             except Exception as e:
                 print(f"Error getting stats for {label_name}: {e}")
-                stats[label_name.lower()] = {'total_count': 'Error', 'unread_count': 'Error'}
+                stats[label_name.lower().replace('category_', '')] = {
+                    'total_count': 'Error', 
+                    'unread_count': 'Error',
+                    'raw_total': 0,
+                    'raw_unread': 0
+                }
         
         return stats
     

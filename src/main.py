@@ -21,7 +21,12 @@ console = Console()
 
 @click.group()
 def cli():
-    """Outlook AI Manager - Intelligent email management system"""
+    """ AI powered mail manager - Intelligent email management system
+    
+    📚 For complete command documentation, see COMMANDS.md
+    🔍 Quick help: uv run mailbot COMMAND --help
+    ⚡ Start here: uv run mailbot setup
+    """
     pass
 
 @cli.command()
@@ -286,19 +291,81 @@ def stats():
     with console.status("[bold green]Fetching email statistics..."):
         stats = fetcher.get_email_stats()
     
+    if not stats:
+        console.print("[red]No email statistics available[/red]")
+        return
+    
+    # Create main stats table
     table = Table(title="Email Folder Statistics")
     table.add_column("Folder", style="cyan")
     table.add_column("Total Emails", justify="right")
     table.add_column("Unread Emails", justify="right")
+    table.add_column("Status", style="dim")
+    
+    total_emails = 0
+    total_unread = 0
+    large_folders = []
     
     for folder, data in stats.items():
+        total_count = data.get('total_count', 0)
+        unread_count = data.get('unread_count', 0)
+        raw_total = data.get('raw_total', 0)
+        raw_unread = data.get('raw_unread', 0)
+        
+        # Determine status
+        status = ""
+        if raw_total == 0:
+            status = "Empty"
+        elif raw_total < 50:
+            status = "Manageable"
+        elif raw_total < 200:
+            status = "Medium"
+        else:
+            status = "Large"
+            large_folders.append(folder.title())
+        
         table.add_row(
             folder.title(),
-            str(data['total_count']),
-            str(data['unread_count'])
+            str(total_count),
+            str(unread_count),
+            status
         )
+        
+        # Add to totals if we have numeric values
+        if isinstance(raw_total, int):
+            total_emails += raw_total
+        if isinstance(raw_unread, int):
+            total_unread += raw_unread
     
     console.print(table)
+    
+    # Show summary and recommendations
+    console.print(f"\n[bold]Summary:[/bold]")
+    console.print(f"📧 Total emails across folders: ~{total_emails:,}")
+    console.print(f"📬 Total unread emails: ~{total_unread:,}")
+    
+    if large_folders:
+        console.print(f"\n[yellow]📦 Large folders detected: {', '.join(large_folders)}[/yellow]")
+        console.print("[yellow]These folders have 200+ emails and are good candidates for cleanup![/yellow]")
+        
+        console.print(f"\n💡 [bold]Recommended next steps:[/bold]")
+        console.print("1. Test classification on a small batch:")
+        console.print("   [cyan]uv run mailbot analyze --limit 10[/cyan]")
+        console.print("2. Try cleaning with high confidence threshold:")
+        console.print("   [cyan]uv run mailbot clean --limit 20 --confidence-threshold 0.95[/cyan]")
+        console.print("3. For bulk cleanup of large folders:")
+        console.print("   [cyan]uv run mailbot clean --limit 100 --auto-delete --confidence-threshold 0.9[/cyan]")
+    else:
+        console.print(f"\n[green]✅ Your mailbox looks well-organized![/green]")
+        console.print("You can still use the analyze command to classify emails or clean up specific folders.")
+    
+    # Show folder-specific recommendations
+    if stats.get('promotions', {}).get('raw_total', 0) > 50:
+        console.print(f"\n🛍️  Tip: Your Promotions folder has many emails - great for testing classification!")
+    if stats.get('spam', {}).get('raw_total', 0) > 10:
+        console.print(f"\n🗑️  Tip: Consider cleaning your Spam folder first as a safe test.")
+    
+    console.print(f"\n[dim]Note: Counts with '+' indicate Gmail estimates for large folders[/dim]")
 
 @cli.command()
 @click.option('--limit', default=50, help='Number of emails to analyze')
