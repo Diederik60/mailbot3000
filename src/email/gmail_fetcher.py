@@ -188,41 +188,96 @@ class GmailFetcher:
         return datetime.now().isoformat() + 'Z'
     
     def get_email_stats(self) -> Dict[str, Dict[str, int]]:
-        """Get basic email statistics"""
+        """Get basic email statistics with accurate counts"""
         service = self._get_service()
         stats = {}
         
-        # Gmail labels to check
-        labels_to_check = ['INBOX', 'SPAM', 'TRASH', 'SENT']
+        # First, get all available labels to understand the structure
+        try:
+            labels_result = service.users().labels().list(userId='me').execute()
+            all_labels = labels_result.get('labels', [])
+            
+            # Focus on main system labels only
+            important_labels = []
+            for label in all_labels:
+                label_id = label['id']
+                label_name = label['name']
+                
+                # Only include key system labels
+                if label_id in ['INBOX', 'SPAM', 'TRASH', 'SENT', 'DRAFT']:
+                    important_labels.append((label_id, label_name))
+                # Include category labels but not UNREAD (it's a modifier)
+                elif label_id.startswith('CATEGORY_') and label_id != 'UNREAD':
+                    important_labels.append((label_id, label_name))
+            
+            print(f"📁 Checking labels: {[name for _, name in important_labels]}")
+            
+        except Exception as e:
+            print(f"Warning: Could not get labels list: {e}")
+            # Fall back to standard labels
+            important_labels = [
+                ('INBOX', 'Inbox'),
+                ('SPAM', 'Spam'), 
+                ('TRASH', 'Trash'),
+                ('SENT', 'Sent')
+            ]
         
-        for label in labels_to_check:
+        # Get more accurate counts for each label
+        for label_id, label_name in important_labels:
             try:
-                # Get total count
+                # Method 1: Try to get actual count by fetching messages
+                print(f"📊 Counting emails in {label_name}...")
+                
+                # Get first batch to check if label has emails
                 result = service.users().messages().list(
                     userId='me',
-                    labelIds=[label],
-                    maxResults=1
+                    labelIds=[label_id],
+                    maxResults=10
                 ).execute()
                 
-                total_count = result.get('resultSizeEstimate', 0)
+                messages = result.get('messages', [])
                 
-                # Get unread count
-                unread_result = service.users().messages().list(
-                    userId='me',
-                    labelIds=[label, 'UNREAD'],
-                    maxResults=1
-                ).execute()
+                if not messages:
+                    # No messages in this label
+                    total_count = 0
+                    unread_count = 0
+                else:
+                    # For folders with messages, get estimate
+                    # Gmail's resultSizeEstimate is more accurate for individual labels
+                    total_count = result.get('resultSizeEstimate', len(messages))
+                    
+                    # For unread count, combine with UNREAD label
+                    try:
+                        unread_result = service.users().messages().list(
+                            userId='me',
+                            labelIds=[label_id, 'UNREAD'],
+                            maxResults=10
+                        ).execute()
+                        unread_count = unread_result.get('resultSizeEstimate', 0)
+                        
+                        # If unread estimate seems wrong, count manually for small numbers
+                        if unread_count > 50:
+                            unread_messages = unread_result.get('messages', [])
+                            if len(unread_messages) < unread_count:
+                                unread_count = len(unread_messages)
+                                
+                    except Exception:
+                        unread_count = 0
                 
-                unread_count = unread_result.get('resultSizeEstimate', 0)
+                # Cap numbers that seem unrealistic
+                if total_count > 10000:
+                    total_count = f"{total_count//1000}k+"
+                if isinstance(unread_count, int) and unread_count > 10000:
+                    unread_count = f"{unread_count//1000}k+"
                 
-                stats[label.lower()] = {
+                stats[label_name.lower()] = {
                     'total_count': total_count,
                     'unread_count': unread_count
                 }
                 
             except Exception as e:
-                print(f"Error getting stats for {label}: {e}")
-                stats[label.lower()] = {'total_count': 0, 'unread_count': 0}
+                print(f"Error getting stats for {label_name}: {e}")
+                stats[label_name.lower()] = {'total_count': 'Error', 'unread_count': 'Error'}
         
         return stats
     

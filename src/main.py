@@ -25,6 +25,147 @@ def cli():
     pass
 
 @cli.command()
+@click.option('--folder', default='INBOX', help='Folder to verify counts for')
+@click.option('--limit', default=50, help='How many emails to actually fetch and count')
+def verify_counts(folder: str, limit: int):
+    """Verify email counts by actually fetching emails"""
+    console.print(f"[bold blue]Verifying Email Counts for {folder}[/bold blue]")
+    
+    try:
+        from src.email.email_interface import EmailInterface
+        
+        email_interface = EmailInterface()
+        
+        if settings.email_provider != "gmail":
+            console.print("[red]This command only works with Gmail provider[/red]")
+            return
+        
+        # Fetch actual emails
+        console.print(f"\n📥 Fetching up to {limit} emails from {folder}...")
+        emails = email_interface.fetch_emails(folder=folder, limit=limit)
+        
+        console.print(f"✅ Actually fetched: {len(emails)} emails")
+        
+        if emails:
+            console.print(f"\n📧 Sample emails from {folder}:")
+            for i, email in enumerate(emails[:3], 1):
+                subject = email.get('subject', 'No Subject')[:50]
+                sender = email.get('from', {}).get('emailAddress', {}).get('address', 'Unknown')
+                date = email.get('receivedDateTime', 'Unknown')[:10]
+                console.print(f"  {i}. {subject}... (from: {sender}, date: {date})")
+            
+            if len(emails) > 3:
+                console.print(f"  ... and {len(emails) - 3} more")
+        else:
+            console.print(f"[yellow]No emails found in {folder}[/yellow]")
+            console.print("\n💡 Try these common folder names:")
+            console.print("  - INBOX")
+            console.print("  - SPAM") 
+            console.print("  - CATEGORY_PROMOTIONS")
+            console.print("  - CATEGORY_SOCIAL")
+        
+        # Compare with API estimate
+        service = email_interface._fetcher._get_service()
+        result = service.users().messages().list(
+            userId='me',
+            labelIds=[folder],
+            maxResults=1
+        ).execute()
+        
+        api_estimate = result.get('resultSizeEstimate', 0)
+        console.print(f"\n📊 API Estimate: {api_estimate}")
+        console.print(f"📊 Actual Fetched: {len(emails)}")
+        
+        if api_estimate != len(emails) and len(emails) == limit:
+            console.print(f"[yellow]Note: Fetched {limit} emails but folder may contain more[/yellow]")
+        elif api_estimate != len(emails):
+            console.print(f"[yellow]Note: API estimate ({api_estimate}) differs from actual count ({len(emails)})[/yellow]")
+        
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+@cli.command()
+def labels():
+    """List all Gmail labels/folders in your account"""
+    console.print("[bold blue]Gmail Labels/Folders[/bold blue]")
+    
+    try:
+        from src.email.email_interface import EmailInterface
+        
+        email_interface = EmailInterface()
+        
+        if settings.email_provider != "gmail":
+            console.print("[red]This command only works with Gmail provider[/red]")
+            console.print("Set EMAIL_PROVIDER=gmail in your .env file")
+            return
+        
+        # Get Gmail service and list labels
+        service = email_interface._fetcher._get_service()
+        result = service.users().labels().list(userId='me').execute()
+        labels = result.get('labels', [])
+        
+        if not labels:
+            console.print("[red]No labels found[/red]")
+            return
+        
+        # Organize labels by type
+        system_labels = []
+        user_labels = []
+        category_labels = []
+        
+        for label in labels:
+            label_id = label['id']
+            label_name = label['name']
+            
+            if label['type'] == 'system':
+                system_labels.append((label_id, label_name))
+            elif label_id.startswith('CATEGORY_'):
+                category_labels.append((label_id, label_name))
+            else:
+                user_labels.append((label_id, label_name))
+        
+        # Display system labels
+        if system_labels:
+            table = Table(title="System Labels (Gmail Folders)")
+            table.add_column("Label ID", style="cyan")
+            table.add_column("Display Name", style="green")
+            
+            for label_id, label_name in sorted(system_labels):
+                table.add_row(label_id, label_name)
+            
+            console.print(table)
+        
+        # Display category labels
+        if category_labels:
+            console.print("\n[bold yellow]Category Labels:[/bold yellow]")
+            cat_table = Table()
+            cat_table.add_column("Label ID", style="cyan")
+            cat_table.add_column("Display Name", style="green")
+            
+            for label_id, label_name in sorted(category_labels):
+                cat_table.add_row(label_id, label_name)
+            
+            console.print(cat_table)
+        
+        # Display custom labels
+        if user_labels:
+            console.print("\n[bold magenta]Custom Labels:[/bold magenta]")
+            custom_table = Table()
+            custom_table.add_column("Label ID", style="cyan")
+            custom_table.add_column("Display Name", style="green")
+            
+            for label_id, label_name in sorted(user_labels):
+                custom_table.add_row(label_id, label_name)
+            
+            console.print(custom_table)
+        
+        console.print(f"\n[dim]Total labels: {len(labels)}[/dim]")
+        console.print("[dim]Use these Label IDs with --folder parameter[/dim]")
+        
+    except Exception as e:
+        console.print(f"[red]Error listing labels: {e}[/red]")
+
+@cli.command()
 def gmail_setup():
     """Set up Gmail API credentials"""
     console.print("[bold blue]Gmail API Setup Guide[/bold blue]")

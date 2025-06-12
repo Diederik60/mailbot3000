@@ -9,6 +9,13 @@ dependencies = [
     # Microsoft Graph API
     "msal>=1.26.0",
     "requests>=2.31.0",
+
+    # Gmail API 
+    "google-auth>=2.25.0",
+    "google-auth-oauthlib>=1.1.0", 
+    "google-auth-httplib2>=0.2.0",
+    "google-api-python-client>=2.110.0",
+    
     
     # LLM Integration (Free options)
     "groq>=0.4.0",
@@ -42,7 +49,7 @@ premium = [
 ]
 
 [project.scripts]
-outlook-ai = "src.main:cli"
+mailbot = "src.main:cli"
 
 [build-system]
 requires = ["hatchling"]

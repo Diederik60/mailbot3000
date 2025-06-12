@@ -12,7 +12,7 @@
 1. **Clone the repository**:
    ```bash
    git clone <your-repo-url>
-   cd outlook-ai-manager
+   cd mailbot-manager
    ```
 
 2. **Install dependencies**:
@@ -26,7 +26,7 @@
    uv run python scripts/setup_gmail.py
    
    # Or get detailed instructions
-   uv run outlook-ai gmail-setup
+   uv run mailbot gmail-setup
    ```
 
 4. **Set up free LLM**:
@@ -36,22 +36,20 @@
 
 5. **Test the setup**:
    ```bash
-   uv run outlook-ai setup
-   # Outlook AI Manager
+   uv run mailbot setup
+   # Mailbot Manager
 
 An AI-powered email management system for Outlook that helps you automatically classify, organize, and clean up your emails using Large Language Models (LLMs).
 
 ## Features
 
-- **Intelligent Email Classification**: Uses free API-based LLMs (Groq, Google Gemini) to categorize emails as JUNK, PROMOTIONAL, IMPORTANT, or UNKNOWN
-- **Dual Email Support**: Works with both Gmail and Outlook - choose your provider
-- **Explicit Provider Control**: Choose exactly which LLM provider to use - no automatic selection
-- **Free Setup Options**: Support for Gmail (free) and Groq/Gemini LLMs (free tiers)
-- **Bulk Email Management**: Process hundreds of emails efficiently with batch classification
-- **No Azure Paywall**: Use Gmail API instead of Microsoft Graph to avoid Azure costs
+- **Intelligent Email Classification**: Uses free API-based LLMs to categorize emails as JUNK, PROMOTIONAL, IMPORTANT, or UNKNOWN
+- **Dual Email Support**: Works with both Gmail and Outlook
+- **Explicit Provider Control**: Choose which LLM provider to use 
+- **Bulk Email Management**: Process emails efficiently with batch classification
 - **Dry Run Mode**: Test classifications without making actual changes
 - **Sender Analysis**: Identify patterns in email senders to create automated rules
-- **Rich CLI Interface**: Beautiful command-line interface with progress bars and tables
+- **Rich CLI Interface**: Command-line interface with progress bars and tables
 
 ## Installation
 
@@ -180,25 +178,25 @@ MAX_EMAILS_PER_RUN=500
 
 ```bash
 # Test setup and authentication
-uv run outlook-ai setup
+uv run mailbot setup
 
 # Show email statistics  
-uv run outlook-ai stats
+uv run mailbot stats
 
 # Get Gmail setup help
-uv run outlook-ai gmail-setup
+uv run mailbot gmail-setup
 
 # Check available providers
-uv run outlook-ai providers
+uv run mailbot providers
 
 # Analyze emails without making changes
-uv run outlook-ai analyze --limit 100
+uv run mailbot analyze --limit 100
 
 # Clean up emails with automatic junk deletion
-uv run outlook-ai clean --limit 200 --auto-delete --confidence-threshold 0.9
+uv run mailbot clean --limit 200 --auto-delete --confidence-threshold 0.9
 
 # Use specific providers
-uv run outlook-ai analyze --provider gemini --limit 50
+uv run mailbot analyze --provider gemini --limit 50
 ```
 
 ### Command Options
@@ -221,16 +219,16 @@ uv run outlook-ai analyze --provider gemini --limit 50
 #### 1. Initial Cleanup of Junk Account (Gmail)
 ```bash
 # First, check what you have
-uv run outlook-ai stats
+uv run mailbot stats
 
 # Analyze recent emails to see classification quality  
-uv run outlook-ai analyze --limit 50 --save-results
+uv run mailbot analyze --limit 50 --save-results
 
 # Clean up with high confidence threshold (safe)
-uv run outlook-ai clean --limit 500 --auto-delete --confidence-threshold 0.9
+uv run mailbot clean --limit 500 --auto-delete --confidence-threshold 0.9
 
 # Review results and adjust threshold as needed
-uv run outlook-ai clean --limit 200 --auto-delete --confidence-threshold 0.8
+uv run mailbot clean --limit 200 --auto-delete --confidence-threshold 0.8
 ```
 
 #### 2. Switching Between Email Providers
@@ -244,13 +242,13 @@ EMAIL_PROVIDER=outlook
 TARGET_EMAIL=your_email@outlook.com
 
 # Test the switch
-uv run outlook-ai setup
+uv run mailbot setup
 ```
 
 ## Project Structure
 
 ```
-outlook-ai-manager/
+mailbot-manager/
 ├── src/
 │   ├── auth/           # Microsoft Graph authentication
 │   ├── email/          # Email fetching and processing

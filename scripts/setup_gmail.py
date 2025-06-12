@@ -82,9 +82,9 @@ def main():
     
     print("\n🎯 Next steps:")
     print("1. Ensure credentials.json is in place")
-    print("2. Run: uv run outlook-ai setup")
+    print("2. Run: uv run mailbot setup")
     print("3. Grant permissions when prompted")
-    print("4. Test with: uv run outlook-ai stats")
+    print("4. Test with: uv run mailbot stats")
     
     print("\n🔧 For LLM setup:")
     print("Run: uv run python scripts/install_free_llms.py")

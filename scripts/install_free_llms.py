@@ -200,146 +200,15 @@ def main():
     if providers_setup:
         print(f"✅ Configured providers: {', '.join(providers_setup)}")
         print("\nNext steps:")
-        print("1. Run: uv run outlook-ai setup")
-        print("2. Test with: uv run outlook-ai providers")
-        print("3. Start classifying: uv run outlook-ai analyze --limit 10")
+        print("1. Run: uv run mailbot setup")
+        print("2. Test with: uv run mailbot providers")
+        print("3. Start classifying: uv run mailbot analyze --limit 10")
     else:
         print("❌ No providers were configured")
         print("You can manually add API keys to your .env file:")
         print("- GROQ_API_KEY=your_key")
         print("- GOOGLE_API_KEY=your_key")
         print("- LLM_PROVIDER=groq  # or gemini")
-
-if __name__ == "__main__":
-    main()env_file, 'r') as f:
-                lines = f.readlines()
-            
-            # Update existing line or add new one
-            updated = False
-            for i, line in enumerate(lines):
-                if line.startswith('GROQ_API_KEY='):
-                    lines[i] = f'GROQ_API_KEY={api_key}\n'
-                    updated = True
-                    break
-            
-            if not updated:
-                lines.append(f'GROQ_API_KEY={api_key}\n')
-            
-            with open(env_file, 'w') as f:
-                f.writelines(lines)
-        else:
-            with open(env_file, 'w') as f:
-                f.write(f'GROQ_API_KEY={api_key}\n')
-        
-        print("✅ Groq API key saved to .env")
-        return True
-    
-    return False
-
-def setup_gemini():
-    """Help set up Google Gemini API"""
-    print("\n🔍 Setting up Google Gemini...")
-    
-    env_file = Path(".env")
-    if env_file.exists():
-        with open(env_file) as f:
-            content = f.read()
-            if "GOOGLE_API_KEY=" in content and "your_google_api_key_here" not in content:
-                print("✅ Google API key already configured")
-                return True
-    
-    print("📋 Google Gemini Setup Steps:")
-    print("1. Visit: https://makersuite.google.com/app/apikey")
-    print("2. Sign in with Google account")
-    print("3. Click 'Create API Key'")
-    print("4. Copy the generated key")
-    
-    api_key = input("\n🔑 Enter your Google API key (or press Enter to skip): ").strip()
-    
-    if api_key:
-        # Update .env file
-        if env_file.exists():
-            with open(env_file, 'r') as f:
-                lines = f.readlines()
-            
-            # Update existing line or add new one
-            updated = False
-            for i, line in enumerate(lines):
-                if line.startswith('GOOGLE_API_KEY='):
-                    lines[i] = f'GOOGLE_API_KEY={api_key}\n'
-                    updated = True
-                    break
-            
-            if not updated:
-                lines.append(f'GOOGLE_API_KEY={api_key}\n')
-            
-            with open(env_file, 'w') as f:
-                f.writelines(lines)
-        else:
-            with open(env_file, 'w') as f:
-                f.write(f'GOOGLE_API_KEY={api_key}\n')
-        
-        print("✅ Google API key saved to .env")
-        return True
-    
-    return False
-
-def install_dependencies():
-    """Install optional dependencies for free LLMs"""
-    print("\n📦 Installing LLM dependencies...")
-    
-    # Check if UV is available
-    try:
-        subprocess.run(['uv', '--version'], capture_output=True)
-        package_manager = ['uv', 'add']
-    except FileNotFoundError:
-        package_manager = ['pip', 'install']
-    
-    dependencies = ['groq', 'google-generativeai']
-    
-    for dep in dependencies:
-        print(f"Installing {dep}...")
-        try:
-            result = subprocess.run(package_manager + [dep], capture_output=True)
-            if result.returncode == 0:
-                print(f"✅ {dep} installed")
-            else:
-                print(f"❌ Failed to install {dep}")
-        except Exception as e:
-            print(f"❌ Error installing {dep}: {e}")
-
-def main():
-    print("🚀 Free LLM Setup Assistant")
-    print("=" * 40)
-    
-    # Install dependencies first
-    install_dependencies()
-    
-    providers_setup = []
-    
-    # Check/setup Ollama
-    if check_ollama():
-        providers_setup.append("Ollama")
-    
-    # Setup Groq
-    if setup_groq():
-        providers_setup.append("Groq")
-    
-    # Setup Gemini
-    if setup_gemini():
-        providers_setup.append("Gemini")
-    
-    print("\n" + "=" * 40)
-    print("🎉 Setup Complete!")
-    
-    if providers_setup:
-        print(f"✅ Configured providers: {', '.join(providers_setup)}")
-        print("\nNext steps:")
-        print("1. Run: uv run outlook-ai setup")
-        print("2. Test with: uv run outlook-ai providers")
-    else:
-        print("❌ No providers were configured")
-        print("Please try the manual setup instructions above")
 
 if __name__ == "__main__":
     main()

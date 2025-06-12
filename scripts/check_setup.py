@@ -203,8 +203,8 @@ def main():
     if all(results):
         print("🎉 All checks passed! Your setup looks good.")
         print("\nNext steps:")
-        print("1. Run: uv run outlook-ai setup")
-        print("2. Test with: uv run outlook-ai stats")
+        print("1. Run: uv run mailbot setup")
+        print("2. Test with: uv run mailbot stats")
     else:
         print("❌ Some checks failed. Please fix the issues above.")
         sys.exit(1)

@@ -70,7 +70,7 @@ def main():
         print("❌ No LLM providers available")
         print("\nTo set up free providers:")
         print("1. Run: python scripts/install_free_llms.py")
-        print("2. Or: uv run outlook-ai llm-setup")
+        print("2. Or: uv run mailbot llm-setup")
         return
     
     print(f"✅ Available providers: {', '.join(available)}")

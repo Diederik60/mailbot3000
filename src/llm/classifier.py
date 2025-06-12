@@ -3,7 +3,6 @@ from typing import Dict, Any, List, Optional
 from src.config.settings import settings
 from src.llm.prompts import EMAIL_CLASSIFICATION_PROMPT, BATCH_CLASSIFICATION_PROMPT, SENDER_ANALYSIS_PROMPT
 import re
-import requests
 
 # Import handlers for different LLM providers
 class LLMProvider:
@@ -19,38 +18,6 @@ class LLMProvider:
     def call_llm(self, prompt: str, temperature: float = 0.1) -> str:
         """Make API call to the LLM"""
         raise NotImplementedError
-
-class OllamaProvider(LLMProvider):
-    """Ollama local LLM provider (completely free)"""
-    
-    def __init__(self):
-        super().__init__("ollama")
-        self.base_url = settings.ollama_base_url
-        self.model = settings.ollama_model
-    
-    def is_available(self) -> bool:
-        return settings.has_ollama
-    
-    def call_llm(self, prompt: str, temperature: float = 0.1) -> str:
-        try:
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": temperature,
-                        "num_predict": 1000
-                    }
-                },
-                timeout=60
-            )
-            response.raise_for_status()
-            return response.json()["response"]
-        except Exception as e:
-            print(f"Ollama error: {e}")
-            return ""
 
 class GroqProvider(LLMProvider):
     """Groq provider (free tier available)"""
@@ -177,50 +144,44 @@ class AnthropicProvider(LLMProvider):
             return ""
 
 class EmailClassifier:
-    def __init__(self, provider: str = "auto"):
+    def __init__(self, provider: Optional[str] = None):
         """
-        Initialize email classifier with free LLM support.
+        Initialize email classifier with explicit provider selection.
         
         Args:
-            provider: "auto", "ollama", "groq", "gemini", "openai", "anthropic"
+            provider: "groq", "gemini", "openai", "anthropic" or None to use settings
         """
         self.providers = {
-            "ollama": OllamaProvider(),
             "groq": GroqProvider(),
             "gemini": GeminiProvider(),
             "openai": OpenAIProvider(),
             "anthropic": AnthropicProvider()
         }
         
-        self.provider = self._select_provider(provider)
+        # Use provided provider or fall back to settings
+        provider_name = provider or settings.llm_provider
+        self.provider = self._get_provider(provider_name)
+        
         if not self.provider:
-            raise ValueError("No LLM provider available")
+            raise ValueError(f"LLM provider '{provider_name}' is not available")
     
-    def _select_provider(self, provider: str) -> Optional[LLMProvider]:
-        """Select the best available provider"""
-        if provider == "auto":
-            # Use settings priority
-            preferred = settings.get_preferred_provider()
-            if preferred and self.providers[preferred].is_available():
-                return self.providers[preferred]
-            
-            # Fallback to any available provider
-            for p in self.providers.values():
-                if p.is_available():
-                    return p
-            return None
+    def _get_provider(self, provider_name: str) -> Optional[LLMProvider]:
+        """Get a specific provider if available"""
+        if provider_name not in self.providers:
+            available = list(self.providers.keys())
+            raise ValueError(f"Unknown provider '{provider_name}'. Available: {', '.join(available)}")
         
-        if provider in self.providers and self.providers[provider].is_available():
-            return self.providers[provider]
-        
-        raise ValueError(f"Provider '{provider}' not available")
+        provider = self.providers[provider_name]
+        if provider.is_available():
+            return provider
+        return None
     
     def classify_email(self, email: Dict[str, Any]) -> Dict[str, Any]:
         """
         Classify a single email.
         
         Args:
-            email: Email data from Microsoft Graph API
+            email: Email data from Microsoft Graph API or Gmail API
             
         Returns:
             Classification result
@@ -276,18 +237,18 @@ class EmailClassifier:
             
             # For free LLMs, use individual classification for better reliability
             # Batch processing can be unreliable with smaller models
-            if self.provider.name in ["ollama", "groq", "gemini"]:
+            if self.provider.name in ["groq"]:
                 for email in batch:
                     results.append(self.classify_email(email))
             else:
-                # Use batch processing for premium models
+                # Use batch processing for premium models and Gemini
                 batch_results = self._classify_batch(batch)
                 results.extend(batch_results)
         
         return results
     
     def _classify_batch(self, emails: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Batch classification for premium models"""
+        """Batch classification for supported models"""
         # Prepare batch data
         emails_data = []
         for email in emails:
@@ -386,12 +347,13 @@ class EmailClassifier:
         }
     
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about the current provider"""
+        """Get information about available providers"""
         available_providers = [name for name, provider in self.providers.items() if provider.is_available()]
         
         return {
             'current_provider': self.provider.name if self.provider else None,
+            'selected_provider': settings.llm_provider,
             'available_providers': available_providers,
-            'free_providers': [p for p in available_providers if p in ['ollama', 'groq', 'gemini']],
+            'free_providers': [p for p in available_providers if p in ['groq', 'gemini']],
             'premium_providers': [p for p in available_providers if p in ['openai', 'anthropic']]
         }

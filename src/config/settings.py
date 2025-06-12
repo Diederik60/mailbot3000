@@ -4,10 +4,17 @@ import os
 from pathlib import Path
 
 class Settings(BaseSettings):
-    # Microsoft Graph API
+    # Email Provider Selection
+    email_provider: str = "gmail"  # gmail or outlook
+    
+    # Microsoft Graph API (for Outlook)
     microsoft_client_id: Optional[str] = None
     microsoft_client_secret: Optional[str] = None
     microsoft_tenant_id: Optional[str] = None
+    
+    # Gmail API Configuration
+    google_credentials_file: str = "credentials.json"
+    gmail_address: Optional[str] = None
     
     # Free LLM Configuration
     groq_api_key: Optional[str] = None
@@ -33,6 +40,12 @@ class Settings(BaseSettings):
         "https://graph.microsoft.com/Mail.ReadWrite",
         "https://graph.microsoft.com/Mail.Send",
         "https://graph.microsoft.com/User.Read"
+    ]
+    
+    # Gmail API Scopes
+    gmail_scopes: list[str] = [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
     ]
     
     # Microsoft Graph URLs
@@ -61,6 +74,18 @@ class Settings(BaseSettings):
         return self.anthropic_api_key is not None
     
     @property
+    def has_gmail_credentials(self) -> bool:
+        return Path(self.google_credentials_file).exists()
+    
+    @property
+    def has_outlook_credentials(self) -> bool:
+        return all([
+            self.microsoft_client_id,
+            self.microsoft_client_secret, 
+            self.microsoft_tenant_id
+        ])
+    
+    @property
     def available_providers(self) -> list[str]:
         """Get list of available LLM providers"""
         providers = []
@@ -74,20 +99,33 @@ class Settings(BaseSettings):
             providers.append("anthropic")
         return providers
     
-    def validate_microsoft_config(self) -> None:
-        """Validate Microsoft Graph configuration"""
-        missing = []
-        if not self.microsoft_client_id:
-            missing.append("MICROSOFT_CLIENT_ID")
-        if not self.microsoft_client_secret:
-            missing.append("MICROSOFT_CLIENT_SECRET")
-        if not self.microsoft_tenant_id:
-            missing.append("MICROSOFT_TENANT_ID")
-        if not self.target_email:
-            missing.append("TARGET_EMAIL")
+    def validate_email_config(self) -> None:
+        """Validate email provider configuration"""
+        if self.email_provider == "gmail":
+            if not self.has_gmail_credentials:
+                raise ValueError(
+                    f"Gmail credentials file '{self.google_credentials_file}' not found. "
+                    "Please download credentials from Google Cloud Console."
+                )
+            if not self.gmail_address:
+                raise ValueError("GMAIL_ADDRESS is required when using Gmail provider")
         
-        if missing:
-            raise ValueError(f"Missing required Microsoft Graph configuration: {', '.join(missing)}")
+        elif self.email_provider == "outlook":
+            if not self.has_outlook_credentials:
+                missing = []
+                if not self.microsoft_client_id:
+                    missing.append("MICROSOFT_CLIENT_ID")
+                if not self.microsoft_client_secret:
+                    missing.append("MICROSOFT_CLIENT_SECRET")
+                if not self.microsoft_tenant_id:
+                    missing.append("MICROSOFT_TENANT_ID")
+                raise ValueError(f"Missing required Outlook configuration: {', '.join(missing)}")
+        
+        else:
+            raise ValueError(f"Invalid email provider '{self.email_provider}'. Use 'gmail' or 'outlook'")
+        
+        if not self.target_email:
+            raise ValueError("TARGET_EMAIL is required")
     
     def validate_llm_config(self) -> None:
         """Validate LLM configuration"""

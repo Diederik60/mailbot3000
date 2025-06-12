@@ -74,8 +74,8 @@ class GmailAuthenticator:
             flow = InstalledAppFlow.from_client_secrets_file(
                 self.credentials_file, self.scopes
             )
-            # Run local server for OAuth
-            creds = flow.run_local_server(port=0)
+            # Run local server for OAuth, but do not open browser automatically
+            creds = flow.run_local_server(port=0, open_browser=False)
             return creds
         except Exception as e:
             print(f"Error in OAuth flow: {e}")
