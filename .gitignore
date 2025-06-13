@@ -50,3 +50,4 @@ token_cache.json
 credentials.json
 classification_results_*.json
 *.log
+*.pickle
