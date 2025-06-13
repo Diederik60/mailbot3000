@@ -7,12 +7,20 @@
   - **Groq** (free tier, very fast)
   - **Google Gemini** (free tier, high quality)
 
-### Quick Start with Gmail (Recommended - No Paywalls!)
+⚠️ Privacy and Security Notice
+IMPORTANT: This application processes your email data using AI services. Please be aware:
+
+Email Content Processing: Your email subjects, sender information, and content previews are sent to AI providers (Groq, Google Gemini, OpenAI, or Anthropic) for classification
+API Data Handling: Different AI providers have varying data retention policies - review their privacy policies before use
+Sensitive Information: Avoid processing emails containing highly sensitive personal, financial, or confidential business information
+Free vs Paid Providers: Free AI services may have different privacy guarantees than paid services
+
+### Quick Start with Gmail (Recommended)
 
 1. **Clone the repository**:
    ```bash
-   git clone <your-repo-url>
-   cd mailbot-manager
+   git clone https://github.co0m/Diederik60/mailbot3000
+   cd mailbot3000
    ```
 
 2. **Install dependencies**:
