@@ -51,3 +51,4 @@ credentials.json
 classification_results_*.json
 *.log
 *.pickle
+token.pickle
